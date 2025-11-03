@@ -1,0 +1,17 @@
+{
+  "name": "yt-music-downloader",
+  "version": "1.0.0",
+  "license": "GPL-3.0-or-later",
+  "bin": {
+    "ytd": "./dist/main.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node ./dist/main.js",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.0",
+    "typescript": "5.9.3"
+  }
+}
