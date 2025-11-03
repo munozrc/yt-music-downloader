@@ -1,2 +1,3 @@
 # yt-music-downloader
-🎧 Herramienta CLI para descargar canciones desde YouTube Music en formato MP3, con metadatos ID3 enriquecidos 🏷️: artista, álbum, título y carátula. Todo desde la terminal.
+
+🎧 CLI tool to download songs from YouTube Music in MP3 format, with rich ID3 metadata 🏷️: artist, album, title, and cover art.
