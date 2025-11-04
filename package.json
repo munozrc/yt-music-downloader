@@ -2,6 +2,7 @@
   "name": "yt-music-downloader",
   "version": "1.0.0",
   "license": "GPL-3.0-or-later",
+  "type": "module",
   "bin": {
     "ytd": "./dist/main.js"
   },
@@ -11,7 +12,15 @@
     "dev": "tsc --watch"
   },
   "devDependencies": {
+    "@types/jsdom": "27.0.0",
     "@types/node": "24.10.0",
     "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "bgutils-js": "3.2.0",
+    "ffmpeg-static": "5.2.0",
+    "googlevideo": "4.0.4",
+    "jsdom": "27.1.0",
+    "youtubei.js": "16.0.1"
   }
 }
