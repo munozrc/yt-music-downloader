@@ -20,20 +20,22 @@ export class YoutubeMusicDownloader implements MusicDownloaderPort {
   }
 
   async download(songUrl: string, outputFolder: string): Promise<Song> {
+    const videoId = this.client.extractVideoId(songUrl);
+
     const { audioStream, selectedFormats } = await this.client.getAudioStream(
-      this.client.extractVideoId(songUrl)
+      videoId
     );
 
     if (typeof ffmpegPath !== "string") {
       throw new Error("ffmpeg is not available on this system.");
     }
 
-    console.log("Selected formats:", selectedFormats);
+    const info = await this.client.getVideoInfo(videoId);
 
-    const outputPath = join(
-      outputFolder,
-      `${this.client.extractVideoId(songUrl)}.mp3`
-    );
+    console.log("Selected formats:", selectedFormats);
+    console.log("Video info:", info);
+
+    const outputPath = join(outputFolder, `${videoId}.mp3`);
 
     const tempFile = join(
       tmpdir(),

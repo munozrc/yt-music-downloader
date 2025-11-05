@@ -51,6 +51,40 @@ export class YoutubeClient {
     return urlParams.get("v") || "";
   }
 
+  /** Retrieves video information for a given video ID.
+   * @param videoId The ID of the YouTube video.
+   * @returns A promise that resolves to the video information.
+   */
+  async getVideoInfo(videoId: string) {
+    const info = await this.yt.music.getInfo(videoId);
+
+    const playlistPanel = info.tabs?.[0]
+      ?.as(YTNodes.Tab)
+      .content?.as(YTNodes.MusicQueue)
+      .content?.as(YTNodes.PlaylistPanel);
+
+    const firstVideo = playlistPanel?.contents?.[0]?.as(
+      YTNodes.PlaylistPanelVideo
+    );
+
+    const artists =
+      firstVideo?.artists?.map((artist) => {
+        return artist.name || "";
+      }) ?? [];
+
+    const highQualityThumbnail = info.basic_info.thumbnail?.[0]?.url
+      .replace(/=w\d+-h\d+/, "=w1400-h1400")
+      .replace(/-rwa$/, "");
+
+    return {
+      album: firstVideo?.album?.name,
+      artists,
+      coverArtUrl: highQualityThumbnail || "",
+      title: firstVideo?.title.text || "",
+      year: firstVideo?.album?.year,
+    };
+  }
+
   /** Retrieves the audio stream for a given video ID.
    * @param videoId The ID of the YouTube video.
    * @returns A promise that resolves to the audio stream and selected formats.
