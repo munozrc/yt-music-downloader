@@ -43,10 +43,10 @@ export class YouTubeSongDownloader implements SongDownloader {
       ? `${Math.round(audioFormat.bitrate / 1000)}k`
       : "128k";
 
-    logger.info(`Average bitrate: ${originalBitrate}`);
     logger.info(`Duration (ms): ${audioFormat.approxDurationMs}`);
     logger.info(`Audio quality: ${audioFormat.audioQuality}`);
     logger.info(`Mime type: ${audioFormat.mimeType}`);
+    logger.info(`Bitrate: ${originalBitrate}`);
 
     return {
       originalBitrate,
