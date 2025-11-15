@@ -23,7 +23,7 @@ export class MetadataWriter {
       try {
         const coverBuffer = await this.downloadImage(metadata.coverArtUrl);
         tags.image = {
-          mime: "image/jpeg",
+          mime: "image/png",
           type: { id: 3, name: "front cover" },
           description: "Cover",
           imageBuffer: coverBuffer,
