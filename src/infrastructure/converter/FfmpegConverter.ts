@@ -1,15 +1,11 @@
+import type {
+  AudioConverter,
+  AudioConvertParams,
+} from "../../application/ports/AudioConverter.js";
 import ffmpegPath from "ffmpeg-static";
 import { spawn } from "node:child_process";
 
-export interface ConversionOptions {
-  inputPath: string;
-  outputPath: string;
-  bitrate?: string;
-  sampleRate?: number;
-  channels?: number;
-}
-
-export class FFmpegConverter {
+export class FfmpegConverter implements AudioConverter {
   private ffmpegPath: string;
 
   constructor() {
@@ -21,24 +17,20 @@ export class FFmpegConverter {
     this.ffmpegPath = ffmpegPath;
   }
 
-  /**
-   * Converts an audio file to MP3 format using FFmpeg.
-   * @param options - Conversion options including input/output paths and audio settings.
-   * @returns A promise that resolves when the conversion is complete.
-   */
-  async convertToMp3(options: ConversionOptions): Promise<void> {
+  convert(params: AudioConvertParams): Promise<void> {
     const {
-      inputPath,
-      outputPath,
+      inputFilePath,
+      outputFilePath,
       bitrate = "128k",
       sampleRate = 44100,
       channels = 2,
-    } = options;
+      format = "mp3",
+    } = params;
 
     const args = [
       "-y",
       "-i",
-      inputPath,
+      inputFilePath,
       "-vn",
       "-ar",
       sampleRate.toString(),
@@ -47,26 +39,30 @@ export class FFmpegConverter {
       "-b:a",
       bitrate,
       "-f",
-      "mp3",
-      outputPath,
+      format,
+      outputFilePath,
     ];
 
     return new Promise((resolve, reject) => {
+      // Spawn the FFmpeg process
       const ffmpeg = spawn(this.ffmpegPath, args);
       let errorOutput = "";
 
+      // Capture FFmpeg error output for debugging
       ffmpeg.stderr.on("data", (data) => {
         errorOutput += data.toString();
       });
 
+      // Handle process exit
       ffmpeg.on("close", (code) => {
         if (code === 0) {
-          resolve();
+          resolve(); // Conversion successful
         } else {
           reject(new Error(`FFmpeg exited with code ${code}: ${errorOutput}`));
         }
       });
 
+      // Handle process errors
       ffmpeg.on("error", (error) => {
         reject(error);
       });

@@ -1,16 +1,13 @@
 import type { ReloadPlaybackContext } from "googlevideo/protos";
-import {
-  Innertube,
-  UniversalCache,
+import Innertube, {
   Platform,
+  UniversalCache,
   YTNodes,
-  Constants,
+  type IPlayerResponse,
+  type Types,
 } from "youtubei.js";
-import type { IPlayerResponse, Types } from "youtubei.js";
 import { BG, type BgConfig } from "bgutils-js";
 import { JSDOM } from "jsdom";
-import { SabrStream } from "googlevideo/sabr-stream";
-import { buildSabrFormat, EnabledTrackTypes } from "googlevideo/utils";
 
 Platform.shim.eval = async (
   data: Types.BuildScriptResult,
@@ -31,138 +28,22 @@ Platform.shim.eval = async (
   return new Function(code)();
 };
 
-export class YoutubeClient {
+export class YouTubeClient {
   private yt: Innertube;
 
   private constructor(innertube: Innertube) {
     this.yt = innertube;
   }
 
-  static async initializeAndCreate(): Promise<YoutubeClient> {
+  /** Factory method to create an instance of YouTubeClient.
+   * @returns A Promise that resolves to an instance of YouTubeClient.
+   */
+  static async create(): Promise<YouTubeClient> {
     const innertube = await Innertube.create({
       cache: new UniversalCache(true),
     });
 
-    return new YoutubeClient(innertube);
-  }
-
-  extractVideoId(url: string): string {
-    const urlParams = new URLSearchParams(new URL(url).search);
-    return urlParams.get("v") || "";
-  }
-
-  /** Retrieves video information for a given video ID.
-   * @param videoId The ID of the YouTube video.
-   * @returns A promise that resolves to the video information.
-   */
-  async getVideoInfo(videoId: string) {
-    const info = await this.yt.music.getInfo(videoId);
-
-    const playlistPanel = info.tabs?.[0]
-      ?.as(YTNodes.Tab)
-      .content?.as(YTNodes.MusicQueue)
-      .content?.as(YTNodes.PlaylistPanel);
-
-    const firstVideo = playlistPanel?.contents?.[0]?.as(
-      YTNodes.PlaylistPanelVideo
-    );
-
-    const artists =
-      firstVideo?.artists?.map((artist) => {
-        return artist.name || "";
-      }) ?? [];
-
-    const highQualityThumbnail = info.basic_info.thumbnail?.[0]?.url
-      .replace(/=w\d+-h\d+/, "=w1400-h1400")
-      .replace(/-rwa$/, "");
-
-    return {
-      album: firstVideo?.album?.name,
-      artists,
-      coverArtUrl: highQualityThumbnail || "",
-      title: firstVideo?.title.text || "",
-      year: firstVideo?.album?.year,
-    };
-  }
-
-  /** Retrieves the audio stream for a given video ID.
-   * @param videoId The ID of the YouTube video.
-   * @returns A promise that resolves to the audio stream and selected formats.
-   */
-  async getAudioStream(videoId: string) {
-    const webPoTokenResult = await this.generateWebPoToken(videoId);
-    const playerResponse = await this.makePlayerRequest(videoId);
-
-    // Now get the streaming information.
-    const serverAbrStreamingUrl = await this.yt.session.player?.decipher(
-      playerResponse.streaming_data?.server_abr_streaming_url
-    );
-    const videoPlaybackUstreamerConfig =
-      playerResponse.player_config?.media_common_config
-        .media_ustreamer_request_config?.video_playback_ustreamer_config;
-
-    if (!videoPlaybackUstreamerConfig) {
-      throw new Error("ustreamerConfig not found");
-    }
-    if (!serverAbrStreamingUrl) {
-      throw new Error("serverAbrStreamingUrl not found");
-    }
-
-    // Build SABR formats from the player response.
-    const sabrFormats =
-      playerResponse.streaming_data?.adaptive_formats.map(buildSabrFormat) ||
-      [];
-
-    const serverAbrStream = new SabrStream({
-      formats: sabrFormats,
-      serverAbrStreamingUrl,
-      videoPlaybackUstreamerConfig,
-      poToken: webPoTokenResult.poToken,
-      clientInfo: {
-        clientName: parseInt(
-          Constants.CLIENT_NAME_IDS[
-            this.yt.session.context.client
-              .clientName as keyof typeof Constants.CLIENT_NAME_IDS
-          ]
-        ),
-        clientVersion: this.yt.session.context.client.clientVersion,
-      },
-    });
-
-    // Handle player response reload events (e.g, when IP changes, or formats expire).
-    serverAbrStream.on(
-      "reloadPlayerResponse",
-      async (reloadPlaybackContext) => {
-        // Fetch a new player response with the provided playback context.
-        const playerResponse = await this.makePlayerRequest(
-          videoId,
-          reloadPlaybackContext
-        );
-
-        const serverAbrStreamingUrl = await this.yt.session.player?.decipher(
-          playerResponse.streaming_data?.server_abr_streaming_url
-        );
-        const videoPlaybackUstreamerConfig =
-          playerResponse.player_config?.media_common_config
-            .media_ustreamer_request_config?.video_playback_ustreamer_config;
-
-        if (serverAbrStreamingUrl && videoPlaybackUstreamerConfig) {
-          serverAbrStream.setStreamingURL(serverAbrStreamingUrl);
-          serverAbrStream.setUstreamerConfig(videoPlaybackUstreamerConfig);
-        }
-      }
-    );
-
-    // Start the stream and get the audio stream.
-    const { audioStream, selectedFormats } = await serverAbrStream.start({
-      audioQuality: "AUDIO_QUALITY_MEDIUM",
-      enabledTrackTypes: EnabledTrackTypes.AUDIO_ONLY,
-    });
-
-    return {
-      audioStream,
-      selectedFormats,
-    };
+    return new YouTubeClient(innertube);
   }
 
   /** Fetches video details and streaming information from YouTube.
@@ -170,7 +51,7 @@ export class YoutubeClient {
    * @param reloadPlaybackContext Optional playback context for reloading.
    * @returns A promise that resolves to the player response.
    */
-  private async makePlayerRequest(
+  public async makePlayerRequest(
     videoId: string,
     reloadPlaybackContext?: ReloadPlaybackContext
   ): Promise<IPlayerResponse> {
@@ -206,7 +87,7 @@ export class YoutubeClient {
    * @param contentBinding The content binding identifier.
    * @returns A promise that resolves to the Web Po Token result.
    */
-  private async generateWebPoToken(contentBinding: string) {
+  public async generateWebPoToken(contentBinding: string) {
     if (!contentBinding) {
       throw new Error("Could not get visitor data");
     }
@@ -257,5 +138,9 @@ export class YoutubeClient {
       placeholderPoToken,
       poToken: poTokenResult.poToken,
     };
+  }
+
+  get client(): Innertube {
+    return this.yt;
   }
 }
