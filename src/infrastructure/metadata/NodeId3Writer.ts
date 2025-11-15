@@ -37,7 +37,7 @@ export class NodeId3Writer implements MetadataWriter {
    */
   private createImageTag(coverBuffer: Buffer) {
     return {
-      mime: "image/png",
+      mime: "image/jpg",
       type: { id: 3, name: "front cover" },
       description: "Cover",
       imageBuffer: coverBuffer,

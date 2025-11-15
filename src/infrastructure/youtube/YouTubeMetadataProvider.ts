@@ -30,7 +30,7 @@ export class YouTubeMetadataProvider implements MetadataProvider {
       }) ?? [];
 
     const highQualityThumbnail = info.basic_info.thumbnail?.[0]?.url
-      .replace(/=w\d+-h\d+/, "=w1400-h1400")
+      .replace(/=w\d+-h\d+/, "=w1000-h1000")
       .replace(/-rwa$/, "");
 
     return new SongMetadata(
