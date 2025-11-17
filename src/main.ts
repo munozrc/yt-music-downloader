@@ -1,12 +1,28 @@
+#!/usr/bin/env node
 import { buildContainer } from "./bootstrap/container.js";
 
-const container = await buildContainer();
+async function main() {
+  // Get the video URL from command line arguments
+  const videoUrl = process.argv.slice(2).join(" ").trim();
+  if (!videoUrl) {
+    console.error("The URL must be a YouTube Music URL.");
+    process.exit(1);
+  }
 
-container.downloadSongUseCase
-  .execute(
-    "https://music.youtube.com/watch?v=nujn6wbr-e8",
-    container.defaultOutputFolder
-  )
-  .then((song) => {
-    console.log("Downloaded:", song);
-  });
+  const { defaultOutputFolder, downloadSongUseCase, logger } =
+    await buildContainer();
+
+  try {
+    const result = await downloadSongUseCase.execute(
+      videoUrl,
+      defaultOutputFolder
+    );
+
+    logger.success("Download completed:", result.filename);
+  } catch (error) {
+    logger.error("Error:", error);
+    process.exit(1);
+  }
+}
+
+main();
