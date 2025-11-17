@@ -8,7 +8,8 @@ export class NodeId3Writer implements MetadataWriter {
     // Prepare ID3 tags
     const tags: NodeID3.Tags = {
       album: metadata.album,
-      artist: metadata.artists.join(", "),
+      artist: metadata.artists.join("; "),
+      performerInfo: metadata.artists[0] ?? "Unknown Artist",
       title: metadata.title,
       year: metadata.year,
     };
