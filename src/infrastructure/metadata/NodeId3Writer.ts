@@ -2,6 +2,7 @@ import NodeID3 from "node-id3";
 import type { MetadataWriter } from "../../application/ports/MetadataWriter.js";
 import type { SongMetadata } from "../../domain/value-object/SongMetadata.js";
 import { logger } from "../logging/logger.js";
+import sharp from "sharp";
 
 export class NodeId3Writer implements MetadataWriter {
   async writeMetadata(filePath: string, metadata: SongMetadata): Promise<void> {
@@ -66,6 +67,51 @@ export class NodeId3Writer implements MetadataWriter {
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    const coverBuffer = Buffer.from(arrayBuffer);
+
+    // Special handling for YouTube thumbnail images
+    if (url.includes("https://i.ytimg.com")) {
+      return await this.processCoverImage(coverBuffer);
+    }
+
+    return coverBuffer;
+  }
+
+  /**
+   * Processes the cover image to ensure it is square and resized to 1000x1000 pixels.
+   * @param imageBuffer - The buffer containing the original image data.
+   * @returns A Promise that resolves to a Buffer containing the processed image data.
+   */
+  private async processCoverImage(
+    imageBuffer: Buffer
+  ): Promise<Buffer<ArrayBufferLike>> {
+    try {
+      const image = sharp(imageBuffer);
+      const metadata = await image.metadata();
+
+      if (metadata.width && metadata.height) {
+        // Determine the size of the square crop
+        const size = Math.min(metadata.width, metadata.height);
+
+        // Crop to center square (1:1 aspect ratio)
+        return await image
+          .extract({
+            width: size,
+            height: size,
+            left: Math.floor((metadata.width - size) / 2),
+            top: Math.floor((metadata.height - size) / 2),
+          })
+          .resize(1000, 1000, {
+            kernel: sharp.kernel.lanczos3,
+            fit: "cover",
+          })
+          .jpeg({ quality: 95 })
+          .toBuffer();
+      }
+    } catch (error) {
+      logger.warn("Failed to process YouTube cover art, using original");
+    }
+
+    return Promise.resolve(imageBuffer);
   }
 }
