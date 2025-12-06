@@ -9,6 +9,11 @@ export class NodeId3Writer implements MetadataWriter {
     const tags: NodeID3.Tags = {
       album: metadata.album,
       artist: metadata.artists.join("; "),
+      ...(metadata.genre ? { genre: metadata.genre } : {}),
+      ...(metadata.trackNumber && metadata.discNumber
+        ? { trackNumber: `${metadata.trackNumber}/${metadata.discNumber}` }
+        : {}),
+      ...(metadata.releaseDate ? { date: metadata.releaseDate } : {}),
       performerInfo: metadata.artists[0] ?? "Unknown Artist",
       title: metadata.title,
       year: metadata.year,
