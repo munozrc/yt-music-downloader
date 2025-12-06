@@ -31,9 +31,11 @@ export class iTunesMusicMetadataProvider implements AdditionalMetadataProvider {
       baseMetadata.album,
       baseMetadata.coverArtUrl,
       baseMetadata.year,
-      bestMetadataResult?.trackNumber,
-      bestMetadataResult?.discNumber,
       bestMetadataResult?.primaryGenreName,
+      bestMetadataResult?.trackNumber,
+      bestMetadataResult?.trackCount,
+      bestMetadataResult?.discCount,
+      bestMetadataResult?.discNumber,
       bestMetadataResult?.releaseDate
     );
   }

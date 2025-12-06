@@ -5,9 +5,11 @@ export class SongMetadata {
     readonly album: string,
     readonly coverArtUrl: string,
     readonly year: string,
-    readonly trackNumber?: number,
-    readonly discNumber?: number,
     readonly genre?: string,
+    readonly trackNumber?: number,
+    readonly trackCount?: number,
+    readonly discCount?: number,
+    readonly discNumber?: number,
     readonly releaseDate?: string
   ) {}
 

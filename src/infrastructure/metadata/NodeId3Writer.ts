@@ -10,8 +10,11 @@ export class NodeId3Writer implements MetadataWriter {
       album: metadata.album,
       artist: metadata.artists.join("; "),
       ...(metadata.genre ? { genre: metadata.genre } : {}),
-      ...(metadata.trackNumber && metadata.discNumber
-        ? { trackNumber: `${metadata.trackNumber}/${metadata.discNumber}` }
+      ...(metadata.trackNumber && metadata.trackCount
+        ? { trackNumber: `${metadata.trackNumber}/${metadata.trackCount}` }
+        : {}),
+      ...(metadata.discNumber && metadata.discCount
+        ? { partOfSet: `${metadata.discNumber}/${metadata.discCount}` }
         : {}),
       ...(metadata.releaseDate ? { date: metadata.releaseDate } : {}),
       performerInfo: metadata.artists[0] ?? "Unknown Artist",
