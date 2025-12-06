@@ -18,6 +18,7 @@ export class NodeId3Writer implements MetadataWriter {
         ? { partOfSet: `${metadata.discNumber}/${metadata.discCount}` }
         : {}),
       ...(metadata.releaseDate ? { date: metadata.releaseDate } : {}),
+      ...(metadata.copyright ? { copyright: metadata.copyright } : {}),
       performerInfo: metadata.artists[0] ?? "Unknown Artist",
       title: metadata.title,
       year: metadata.year,

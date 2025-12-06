@@ -10,7 +10,8 @@ export class SongMetadata {
     readonly trackCount?: number,
     readonly discCount?: number,
     readonly discNumber?: number,
-    readonly releaseDate?: string
+    readonly releaseDate?: string,
+    readonly copyright?: string
   ) {}
 
   get normalizedArtists(): string {

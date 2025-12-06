@@ -36,7 +36,8 @@ export class iTunesMusicMetadataProvider implements AdditionalMetadataProvider {
       bestMetadataResult?.trackCount,
       bestMetadataResult?.discCount,
       bestMetadataResult?.discNumber,
-      bestMetadataResult?.releaseDate
+      bestMetadataResult?.releaseDate,
+      bestMetadataResult?.copyright
     );
   }
 
