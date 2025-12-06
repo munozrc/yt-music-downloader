@@ -20,7 +20,7 @@ async function main() {
 
     logger.success("Download completed:", result.filename);
   } catch (error) {
-    logger.error("Error:", error);
+    logger.error("Error downloading song:", error);
     process.exit(1);
   }
 }

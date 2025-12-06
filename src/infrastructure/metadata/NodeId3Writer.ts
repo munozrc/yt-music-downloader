@@ -60,7 +60,10 @@ export class NodeId3Writer implements MetadataWriter {
    * @returns A Promise that resolves to a Buffer containing the image data.
    */
   private async downloadImage(url: string): Promise<Buffer> {
-    const response = await fetch(url);
+    const response = await fetch(url, {
+      headers: { "Content-Type": "image/jpeg" },
+      signal: AbortSignal.timeout(30 * 1000),
+    });
 
     if (!response.ok) {
       throw new Error(`Failed to download image: ${response.statusText}`);

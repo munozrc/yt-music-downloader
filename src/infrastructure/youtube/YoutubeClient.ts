@@ -101,7 +101,7 @@ export class YouTubeClient {
 
     const bgConfig: BgConfig = {
       fetch: (input: string | URL | globalThis.Request, init?: RequestInit) =>
-        fetch(input, init),
+        fetch(input, { ...init, signal: AbortSignal.timeout(30 * 1000) }),
       globalObj: globalThis,
       identifier: contentBinding,
       requestKey: "O43z0dpjhgX20SCx4KAo",

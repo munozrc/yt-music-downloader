@@ -53,7 +53,10 @@ export class iTunesMusicMetadataProvider implements AdditionalMetadataProvider {
 
       const res = await fetch(
         `${this.baseUrl}?term=${term}&entity=song&limit=25`,
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: { "Content-Type": "application/json" },
+          signal: AbortSignal.timeout(30 * 1000),
+        }
       );
 
       const json = await res.json();
