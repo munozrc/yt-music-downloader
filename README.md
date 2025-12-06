@@ -4,22 +4,22 @@
 
 ## How to Use
 
-1. **Install the tool** (if not already done):
+#### 1. **Install the tool** (if not already done):
 
-   ```bash
-   npm link
-   ```
+```bash
+npm link
+```
 
-2. **Download a song** by providing the YouTube Music URL:
+#### 2. **Download a song** by providing the YouTube Music URL:
 
-   ```bash
-   ytd <youtube-music-url>
-   ```
+```bash
+ytd <youtube-music-url>
+```
 
-   Example:
+Example:
 
-   ```bash
-   ytd https://music.youtube.com/watch?v=example_song_id
-   ```
+```bash
+ytd "https://music.youtube.com/watch?v=example_song_id"
+```
 
-   The song will be downloaded to the default output folder with proper metadata.
+The song will be downloaded to the default output folder with proper metadata.
