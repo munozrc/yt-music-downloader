@@ -1,9 +1,9 @@
 import { Download } from "../../domain/aggregate/Download.js";
-import type { YouTubeMusicClient } from "../ports/YouTubeMusicClient.js";
-import type { AudioConverter } from "../ports/AudioConverter.js";
-import type { MetadataWriter } from "../ports/MetadataWriter.js";
 import type { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
 import type { VideoId } from "../../domain/value-object/VideoId.js";
+import type { AudioConverter } from "../ports/AudioConverter.js";
+import type { MetadataWriter } from "../ports/MetadataWriter.js";
+import type { YouTubeMusicClient } from "../ports/YouTubeMusicClient.js";
 
 export class DownloadTrackUseCase {
   constructor(

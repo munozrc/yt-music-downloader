@@ -9,9 +9,7 @@ export class MetadataEnrichment {
     readonly copyright?: string
   ) {}
 
-  /**
-   * Creates a MetadataEnrichment instance from iTunes data.
-   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static fromITunes(data: any): MetadataEnrichment {
     return new MetadataEnrichment(
       data.primaryGenreName,

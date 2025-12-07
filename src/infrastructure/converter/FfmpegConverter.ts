@@ -1,11 +1,13 @@
+import { spawn } from "node:child_process";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
+
+import ffmpegPath from "ffmpeg-static";
+
 import type {
   AudioConverter,
   AudioConvertParams,
 } from "../../application/ports/AudioConverter.js";
-import ffmpegPath from "ffmpeg-static";
-import { spawn } from "node:child_process";
-import { unlink } from "node:fs/promises";
-import path from "node:path";
 
 export class FfmpegConverter implements AudioConverter {
   private ffmpegPath: string;

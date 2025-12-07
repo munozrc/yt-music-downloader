@@ -15,7 +15,7 @@ export class Filename {
    */
   toFileSystem(): string {
     return this.value
-      .replace(/[\/\\?%*:|"<>]/g, "-")
+      .replace(/[/\\?%*:|"<>]/g, "-")
       .replace(/\s+/g, " ")
       .trim();
   }

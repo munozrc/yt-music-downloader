@@ -3,6 +3,14 @@ import { MetadataEnrichment } from "../../domain/value-object/MetadataEnrichment
 import { type TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
 import { logger } from "../logging/logger.js";
 
+type ITunesSearchResult = {
+  trackName: string;
+  artistName: string;
+  releaseDate: string;
+  primaryGenreName: string;
+  trackNumber: number;
+};
+
 export class iTunesEnricher implements MetadataEnricher {
   private readonly baseUrl = "https://itunes.apple.com/search";
 
@@ -32,7 +40,9 @@ export class iTunesEnricher implements MetadataEnricher {
    * @param metadata - The track metadata to search for.
    * @returns A Promise that resolves to an array of search results.
    */
-  private async searchTrack(metadata: TrackMetadata): Promise<any[]> {
+  private async searchTrack(
+    metadata: TrackMetadata
+  ): Promise<ITunesSearchResult[]> {
     const term = encodeURIComponent(
       `${metadata.title} ${metadata.artists.toString()}`.trim()
     );
@@ -55,7 +65,10 @@ export class iTunesEnricher implements MetadataEnricher {
    * @param metadata - The original track metadata to match against.
    * @returns The best matching track result or null if no suitable match is found.
    */
-  private pickBestTrack(results: any[], metadata: TrackMetadata): any | null {
+  private pickBestTrack(
+    results: ITunesSearchResult[],
+    metadata: TrackMetadata
+  ): ITunesSearchResult | null {
     if (!results.length) return null;
 
     const title = metadata.title.toLowerCase();

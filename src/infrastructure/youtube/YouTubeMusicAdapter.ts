@@ -1,29 +1,31 @@
+import { randomBytes } from "node:crypto";
+import { createWriteStream } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { BG, type BgConfig } from "bgutils-js";
+import type { ReloadPlaybackContext } from "googlevideo/protos";
+import { SabrStream } from "googlevideo/sabr-stream";
+import { buildSabrFormat, EnabledTrackTypes } from "googlevideo/utils";
+import { JSDOM } from "jsdom";
 import Innertube, {
   Constants,
+  type IPlayerResponse,
   UniversalCache,
   Utils,
   YTNodes,
-  type IPlayerResponse,
 } from "youtubei.js";
+
 import type {
   SearchResult,
   YouTubeMusicClient,
 } from "../../application/ports/YouTubeMusicClient.js";
+import { Album } from "../../domain/value-object/Album.js";
+import { Artists } from "../../domain/value-object/Artists.js";
+import { AudioFile } from "../../domain/value-object/AudioFile.js";
+import { CoverArt } from "../../domain/value-object/CoverArt.js";
 import { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
 import type { VideoId } from "../../domain/value-object/VideoId.js";
-import { BG, type BgConfig } from "bgutils-js";
-import { JSDOM } from "jsdom";
-import type { ReloadPlaybackContext } from "googlevideo/protos";
-import { buildSabrFormat, EnabledTrackTypes } from "googlevideo/utils";
-import { SabrStream } from "googlevideo/sabr-stream";
-import { Artists } from "../../domain/value-object/Artists.js";
-import { Album } from "../../domain/value-object/Album.js";
-import { CoverArt } from "../../domain/value-object/CoverArt.js";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
-import { randomBytes } from "node:crypto";
-import { createWriteStream } from "node:fs";
-import { AudioFile } from "../../domain/value-object/AudioFile.js";
 
 export class YouTubeMusicAdapter implements YouTubeMusicClient {
   private yt: Innertube;
@@ -177,11 +179,11 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     return AudioFile.create(tempFilePath, bitrate);
   }
 
-  async search(query: string): Promise<SearchResult[]> {
+  async search(): Promise<SearchResult[]> {
     throw new Error("Method not implemented.");
   }
 
-  getPlaylistTracks(playlistId: string): Promise<VideoId[]> {
+  getPlaylistTracks(): Promise<VideoId[]> {
     throw new Error("Method not implemented.");
   }
 
@@ -199,6 +201,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
       watchEndpoint: { videoId },
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const extraArgs: Record<string, any> = {
       playbackContext: {
         adPlaybackContext: { pyv: true },

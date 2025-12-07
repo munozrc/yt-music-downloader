@@ -1,9 +1,10 @@
 import NodeID3 from "node-id3";
-import type { MetadataWriter } from "../../application/ports/MetadataWriter.js";
-import type { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
+
 import type { ImageProcessor } from "../../application/ports/ImageProcessor.js";
-import { logger } from "../logging/logger.js";
+import type { MetadataWriter } from "../../application/ports/MetadataWriter.js";
 import type { CoverArt } from "../../domain/value-object/CoverArt.js";
+import type { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
+import { logger } from "../logging/logger.js";
 
 export class NodeId3Writer implements MetadataWriter {
   constructor(private readonly imageProcessor: ImageProcessor) {}

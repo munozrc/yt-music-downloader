@@ -1,4 +1,5 @@
 import sharp from "sharp";
+
 import type { ImageProcessor } from "../../application/ports/ImageProcessor.js";
 
 export class SharpImageProcessor implements ImageProcessor {

@@ -1,13 +1,13 @@
 import { join } from "node:path";
 
-import { FfmpegConverter } from "../infrastructure/converter/FfmpegConverter.js";
-import { logger } from "../infrastructure/logging/logger.js";
-import { NodeId3Writer } from "../infrastructure/metadata/NodeId3Writer.js";
-import { SharpImageProcessor } from "../infrastructure/converter/SharpImageProcessor.js";
-import { YouTubeMusicAdapter } from "../infrastructure/youtube/YouTubeMusicAdapter.js";
-import { iTunesEnricher } from "../infrastructure/metadata/iTunesEnricher.js";
-import { SearchTrackUseCase } from "../application/use-cases/SearchTrackUseCase.js";
 import { DownloadTrackUseCase } from "../application/use-cases/DownloadTrackUseCase.js";
+import { SearchTrackUseCase } from "../application/use-cases/SearchTrackUseCase.js";
+import { FfmpegConverter } from "../infrastructure/converter/FfmpegConverter.js";
+import { SharpImageProcessor } from "../infrastructure/converter/SharpImageProcessor.js";
+import { logger } from "../infrastructure/logging/logger.js";
+import { iTunesEnricher } from "../infrastructure/metadata/iTunesEnricher.js";
+import { NodeId3Writer } from "../infrastructure/metadata/NodeId3Writer.js";
+import { YouTubeMusicAdapter } from "../infrastructure/youtube/YouTubeMusicAdapter.js";
 
 export type AppContainer = {
   logger: typeof logger;
