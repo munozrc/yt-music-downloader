@@ -66,10 +66,9 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
       YTNodes.PlaylistPanelVideo
     );
 
-    // Extract artists
     const artists = firstVideo?.artists?.length
       ? Artists.fromArray(firstVideo.artists.map((artist) => artist.name || ""))
-      : Artists.fromString(firstVideo?.author || "");
+      : Artists.fromString(firstVideo?.author || ""); // Fallback to author if no artists listed
 
     const album = Album.fromName(firstVideo?.album?.name);
 
