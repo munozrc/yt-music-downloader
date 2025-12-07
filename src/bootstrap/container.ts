@@ -1,16 +1,18 @@
 import { join } from "node:path";
-import { DownloadSongUseCase } from "../application/use-cases/DownloadSongUseCase.js";
+
 import { FfmpegConverter } from "../infrastructure/converter/FfmpegConverter.js";
 import { logger } from "../infrastructure/logging/logger.js";
 import { NodeId3Writer } from "../infrastructure/metadata/NodeId3Writer.js";
-import { YouTubeMetadataProvider } from "../infrastructure/youtube/YouTubeMetadataProvider.js";
-import { YouTubeSongDownloader } from "../infrastructure/youtube/YouTubeSongDownloader.js";
-import { YouTubeClient } from "../infrastructure/youtube/YouTubeClient.js";
-import { iTunesMusicMetadataProvider } from "../infrastructure/metadata/iTunesMusicMetadataProvider.js";
+import { SharpImageProcessor } from "../infrastructure/converter/SharpImageProcessor.js";
+import { YouTubeMusicAdapter } from "../infrastructure/youtube/YouTubeMusicAdapter.js";
+import { iTunesEnricher } from "../infrastructure/metadata/iTunesEnricher.js";
+import { SearchTrackUseCase } from "../application/use-cases/SearchTrackUseCase.js";
+import { DownloadTrackUseCase } from "../application/use-cases/DownloadTrackUseCase.js";
 
 export type AppContainer = {
   logger: typeof logger;
-  downloadSongUseCase: DownloadSongUseCase;
+  searchTrackUseCase: SearchTrackUseCase;
+  downloadTrackUseCase: DownloadTrackUseCase;
   defaultOutputFolder: string;
 };
 
@@ -19,14 +21,24 @@ export type AppContainer = {
  * @returns A promise that resolves to the application container.
  */
 export async function buildContainer(): Promise<AppContainer> {
-  const yt = await YouTubeClient.create();
+  const imageProcessor = new SharpImageProcessor();
+  const metadataEnricher = new iTunesEnricher();
 
+  const youtubeClient = await YouTubeMusicAdapter.create();
+  const metadataWriter = new NodeId3Writer(imageProcessor);
   const audioConverter = new FfmpegConverter();
-  const songDownloader = new YouTubeSongDownloader(yt);
-  const metadataWriter = new NodeId3Writer();
 
-  const iTunesMetadata = new iTunesMusicMetadataProvider();
-  const metadataProvider = new YouTubeMetadataProvider(yt, iTunesMetadata);
+  // Use cases
+  const searchTrackUseCase = new SearchTrackUseCase(
+    youtubeClient,
+    metadataEnricher
+  );
+
+  const downloadTrackUseCase = new DownloadTrackUseCase(
+    youtubeClient,
+    audioConverter,
+    metadataWriter
+  );
 
   const defaultOutputFolder = process.env.USERPROFILE
     ? join(process.env.USERPROFILE, "Music")
@@ -34,12 +46,8 @@ export async function buildContainer(): Promise<AppContainer> {
 
   return {
     logger,
+    searchTrackUseCase,
+    downloadTrackUseCase,
     defaultOutputFolder,
-    downloadSongUseCase: new DownloadSongUseCase(
-      audioConverter,
-      songDownloader,
-      metadataProvider,
-      metadataWriter
-    ),
   };
 }

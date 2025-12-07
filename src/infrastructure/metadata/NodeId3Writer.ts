@@ -1,15 +1,28 @@
 import NodeID3 from "node-id3";
 import type { MetadataWriter } from "../../application/ports/MetadataWriter.js";
-import type { SongMetadata } from "../../domain/value-object/SongMetadata.js";
+import type { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
+import type { ImageProcessor } from "../../application/ports/ImageProcessor.js";
 import { logger } from "../logging/logger.js";
-import sharp from "sharp";
+import type { CoverArt } from "../../domain/value-object/CoverArt.js";
 
 export class NodeId3Writer implements MetadataWriter {
-  async writeMetadata(filePath: string, metadata: SongMetadata): Promise<void> {
-    // Prepare ID3 tags
+  constructor(private readonly imageProcessor: ImageProcessor) {}
+
+  /**
+   * Writes ID3 metadata to the specified audio file.
+   * @param filePath - The path to the audio file.
+   * @param metadata - The TrackMetadata object containing metadata to write.
+   */
+  async writeMetadata(
+    filePath: string,
+    metadata: TrackMetadata
+  ): Promise<void> {
     const tags: NodeID3.Tags = {
-      album: metadata.album,
-      artist: metadata.artists.join("; "),
+      title: metadata.title,
+      artist: metadata.artists.toId3Format(),
+      album: metadata.album.value,
+      year: metadata.year,
+      performerInfo: metadata.artists.primary,
       ...(metadata.genre ? { genre: metadata.genre } : {}),
       ...(metadata.trackNumber && metadata.trackCount
         ? { trackNumber: `${metadata.trackNumber}/${metadata.trackCount}` }
@@ -19,22 +32,24 @@ export class NodeId3Writer implements MetadataWriter {
         : {}),
       ...(metadata.releaseDate ? { date: metadata.releaseDate } : {}),
       ...(metadata.copyright ? { copyright: metadata.copyright } : {}),
-      performerInfo: metadata.artists[0] ?? "Unknown Artist",
-      title: metadata.title,
-      year: metadata.year,
     };
 
     // Add cover art if available
-    if (metadata.coverArtUrl) {
+    if (metadata.coverArt.exists()) {
       try {
-        const coverBuffer = await this.downloadImage(metadata.coverArtUrl);
-        tags.image = this.createImageTag(coverBuffer);
+        const coverBuffer = await this.processArtwork(metadata.coverArt);
+        tags.image = {
+          mime: "image/jpeg",
+          type: { id: 3, name: "front cover" },
+          description: "Cover",
+          imageBuffer: coverBuffer,
+        };
       } catch (error) {
-        logger.warn("Failed to download cover art:", error);
+        logger.warn("Failed to process cover art:", error);
       }
     }
 
-    // Write tags to the file
+    // Write tags to file
     const success = NodeID3.write(tags, filePath);
     if (!success) {
       throw new Error("Failed to write metadata to file");
@@ -42,80 +57,27 @@ export class NodeId3Writer implements MetadataWriter {
   }
 
   /**
-   * Creates an image tag for ID3 metadata.
-   * @param coverBuffer - The buffer containing the cover image data.
-   * @returns An object representing the image tag.
+   * Processes the cover art by downloading and cropping if necessary.
+   * @param coverArt - The CoverArt object containing the URL and cropping info.
+   * @returns A Promise that resolves to a Buffer containing the processed image data.
    */
-  private createImageTag(coverBuffer: Buffer) {
-    return {
-      mime: "image/jpg",
-      type: { id: 3, name: "front cover" },
-      description: "Cover",
-      imageBuffer: coverBuffer,
-    };
-  }
+  private async processArtwork(coverArt: CoverArt): Promise<Buffer> {
+    // If 16:9 video thumbnail, crop to square
+    if (coverArt.requiresCropping()) {
+      return this.imageProcessor.cropToSquare(coverArt.url);
+    }
 
-  /**
-   * Downloads an image from the given URL and returns it as a Buffer.
-   * @param url - The URL of the image to download.
-   * @returns A Promise that resolves to a Buffer containing the image data.
-   */
-  private async downloadImage(url: string): Promise<Buffer> {
-    const response = await fetch(url, {
-      headers: { "Content-Type": "image/jpeg" },
+    // Otherwise just download
+    const response = await fetch(coverArt.url, {
       signal: AbortSignal.timeout(30 * 1000),
     });
 
     if (!response.ok) {
-      throw new Error(`Failed to download image: ${response.statusText}`);
+      throw new Error(`Failed to download artwork: ${response.statusText}`);
     }
 
+    // Return image as buffer
     const arrayBuffer = await response.arrayBuffer();
-    const coverBuffer = Buffer.from(arrayBuffer);
-
-    // Special handling for YouTube thumbnail images
-    if (url.includes("https://i.ytimg.com")) {
-      return await this.processCoverImage(coverBuffer);
-    }
-
-    return coverBuffer;
-  }
-
-  /**
-   * Processes the cover image to ensure it is square and resized to 1000x1000 pixels.
-   * @param imageBuffer - The buffer containing the original image data.
-   * @returns A Promise that resolves to a Buffer containing the processed image data.
-   */
-  private async processCoverImage(
-    imageBuffer: Buffer
-  ): Promise<Buffer<ArrayBufferLike>> {
-    try {
-      const image = sharp(imageBuffer);
-      const metadata = await image.metadata();
-
-      if (metadata.width && metadata.height) {
-        // Determine the size of the square crop
-        const size = Math.min(metadata.width, metadata.height);
-
-        // Crop to center square (1:1 aspect ratio)
-        return await image
-          .extract({
-            width: size,
-            height: size,
-            left: Math.floor((metadata.width - size) / 2),
-            top: Math.floor((metadata.height - size) / 2),
-          })
-          .resize(1000, 1000, {
-            kernel: sharp.kernel.lanczos3,
-            fit: "cover",
-          })
-          .jpeg({ quality: 95 })
-          .toBuffer();
-      }
-    } catch (error) {
-      logger.warn("Failed to process YouTube cover art, using original");
-    }
-
-    return Promise.resolve(imageBuffer);
+    return Buffer.from(arrayBuffer);
   }
 }

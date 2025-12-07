@@ -1,8 +1,8 @@
 export interface AudioConvertParams {
-  bitrate?: string;
-  channels?: number;
   inputFilePath: string;
   outputFilePath: string;
+  bitrate?: string;
+  channels?: number;
   sampleRate?: number;
   format?: string;
 }

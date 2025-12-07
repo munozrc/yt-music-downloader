@@ -1,5 +1,5 @@
-import type { SongMetadata } from "../../domain/value-object/SongMetadata.js";
+import type { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
 
 export interface MetadataWriter {
-  writeMetadata(filePath: string, metadata: SongMetadata): Promise<void>;
+  writeMetadata(filePath: string, metadata: TrackMetadata): Promise<void>;
 }

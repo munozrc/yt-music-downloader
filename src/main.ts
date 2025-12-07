@@ -9,18 +9,24 @@ async function main() {
     process.exit(1);
   }
 
-  const { defaultOutputFolder, downloadSongUseCase, logger } =
-    await buildContainer();
+  const {
+    logger,
+    searchTrackUseCase,
+    downloadTrackUseCase,
+    defaultOutputFolder,
+  } = await buildContainer();
 
   try {
-    const result = await downloadSongUseCase.execute(
+    const metadata = await searchTrackUseCase.execute(videoUrl);
+    const download = await downloadTrackUseCase.execute(
       videoUrl,
+      metadata,
       defaultOutputFolder
     );
 
-    logger.success("Download completed:", result.filename);
+    logger.success(`Downloaded: ${download.filename.withExtension()}`);
   } catch (error) {
-    logger.error("Error downloading song:", error);
+    logger.error("Error finding track:", error);
     process.exit(1);
   }
 }
