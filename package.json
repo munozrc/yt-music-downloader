@@ -9,12 +9,19 @@
   "scripts": {
     "build": "tsc",
     "start": "node ./dist/main.js",
+    "lint:check": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
     "dev": "tsc --watch"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.1",
     "@types/jsdom": "27.0.0",
     "@types/node": "24.10.0",
-    "typescript": "5.9.3"
+    "eslint": "9.39.1",
+    "eslint-plugin-simple-import-sort": "12.1.1",
+    "globals": "16.5.0",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.48.1"
   },
   "dependencies": {
     "bgutils-js": "3.2.0",
