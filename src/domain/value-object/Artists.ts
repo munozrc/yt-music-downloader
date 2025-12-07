@@ -6,8 +6,13 @@ export class Artists {
     return new Artists(filtered.length > 0 ? filtered : ["Unknown Artist"]);
   }
 
-  static single(artist: string): Artists {
-    return Artists.fromArray([artist]);
+  static fromString(artists: string): Artists {
+    const parts = artists
+      .split(/,|&/)
+      .map((artist) => artist.trim())
+      .filter((artist) => artist.length > 0);
+
+    return Artists.fromArray(parts);
   }
 
   get primary(): string {
