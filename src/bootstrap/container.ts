@@ -13,7 +13,6 @@ export type AppContainer = {
   logger: typeof logger;
   searchTrackUseCase: SearchTrackUseCase;
   downloadTrackUseCase: DownloadTrackUseCase;
-  defaultOutputFolder: string;
 };
 
 /**
@@ -28,6 +27,10 @@ export async function buildContainer(): Promise<AppContainer> {
   const metadataWriter = new NodeId3Writer(imageProcessor);
   const audioConverter = new FfmpegConverter();
 
+  const defaultOutputFolder = process.env.USERPROFILE
+    ? join(process.env.USERPROFILE, "Music")
+    : "";
+
   // Use cases
   const searchTrackUseCase = new SearchTrackUseCase(
     youtubeClient,
@@ -37,17 +40,13 @@ export async function buildContainer(): Promise<AppContainer> {
   const downloadTrackUseCase = new DownloadTrackUseCase(
     youtubeClient,
     audioConverter,
-    metadataWriter
+    metadataWriter,
+    defaultOutputFolder
   );
-
-  const defaultOutputFolder = process.env.USERPROFILE
-    ? join(process.env.USERPROFILE, "Music")
-    : "";
 
   return {
     logger,
-    searchTrackUseCase,
     downloadTrackUseCase,
-    defaultOutputFolder,
+    searchTrackUseCase,
   };
 }
