@@ -6,7 +6,6 @@ import Innertube, {
   type IPlayerResponse,
 } from "youtubei.js";
 import type {
-  AudioStreamResult,
   SearchResult,
   YouTubeMusicClient,
 } from "../../application/ports/YouTubeMusicClient.js";
@@ -20,6 +19,11 @@ import { SabrStream } from "googlevideo/sabr-stream";
 import { Artists } from "../../domain/value-object/Artists.js";
 import { Album } from "../../domain/value-object/Album.js";
 import { CoverArt } from "../../domain/value-object/CoverArt.js";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { randomBytes } from "node:crypto";
+import { createWriteStream } from "node:fs";
+import { AudioFile } from "../../domain/value-object/AudioFile.js";
 
 export class YouTubeMusicAdapter implements YouTubeMusicClient {
   private yt: Innertube;
@@ -79,7 +83,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     );
   }
 
-  async downloadAudio(videoId: VideoId): Promise<AudioStreamResult> {
+  async downloadAudio(videoId: VideoId): Promise<AudioFile> {
     const webPoTokenResult = await this.generateWebPoToken(videoId.value);
     const playerResponse = await this.makePlayerRequest(videoId.value);
 
@@ -146,14 +150,31 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
       enabledTrackTypes: EnabledTrackTypes.AUDIO_ONLY,
     });
 
+    // Save the audio stream to a temporary file and return the AudioFile
+    const tempFilename = `yt_${randomBytes(8).toString("hex")}.webm`;
+    const tempFilePath = join(tmpdir(), tempFilename);
+
+    // Create a write stream to the temporary output file
+    const tempWrite = createWriteStream(tempFilePath, {
+      encoding: "binary",
+      flags: "w",
+    });
+
+    // Write the audio stream to the temporary file
+    for await (const chunk of Utils.streamToIterable(audioStream)) {
+      tempWrite.write(chunk);
+    }
+
+    // Finalize the write stream
+    tempWrite.end();
+
+    // Determine bitrate string
     const bitrate = selectedFormats.audioFormat.bitrate
       ? `${Math.round(selectedFormats.audioFormat.bitrate / 1000)}k`
       : "128k";
 
-    return {
-      stream: Utils.streamToIterable(audioStream),
-      bitrate,
-    };
+    // Return the AudioFile
+    return AudioFile.create(tempFilePath, bitrate);
   }
 
   async search(query: string): Promise<SearchResult[]> {

@@ -1,16 +1,9 @@
-import path from "node:path";
-import { tmpdir } from "node:os";
-import { randomBytes } from "node:crypto";
-import { createWriteStream } from "node:fs";
-import { unlink } from "node:fs/promises";
-
 import { Download } from "../../domain/aggregate/Download.js";
 import type { YouTubeMusicClient } from "../ports/YouTubeMusicClient.js";
 import type { AudioConverter } from "../ports/AudioConverter.js";
 import type { MetadataWriter } from "../ports/MetadataWriter.js";
 import type { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
 import { YouTubeUrl } from "../../domain/value-object/YouTubeUrl.js";
-import { AudioFile } from "../../domain/value-object/AudioFile.js";
 
 export class DownloadTrackUseCase {
   constructor(
@@ -32,58 +25,27 @@ export class DownloadTrackUseCase {
     download.startDownloading();
 
     // 5. Download audio stream
-    const { stream, bitrate } = await this.youtubeClient.downloadAudio(videoId);
-    const tempFilePath = await this.saveStreamToTempFile(stream);
-
-    const audioFile = AudioFile.create(tempFilePath, bitrate);
+    const audioFile = await this.youtubeClient.downloadAudio(videoId);
     download.setAudioFile(audioFile);
 
     // 6. Convert audio to MP3
-    const outputFilePath = path.join(
-      outputFolder,
-      download.filename.withExtension()
-    );
-
-    await this.audioConverter.convert({
-      inputFilePath: tempFilePath,
-      outputFilePath,
+    const convertedFilePath = await this.audioConverter.convert({
+      filename: download.filename.withExtension(),
+      inputFilePath: audioFile.tempPath,
       bitrate: audioFile.bitrate.toString(),
+      outputFolder,
     });
 
     // Clean up temp file
-    await unlink(tempFilePath);
+    await this.audioConverter.deleteTemporaryFile(audioFile.tempPath);
 
     // 7. Write metadata with artwork
     download.startWritingMetadata();
-    await this.metadataWriter.writeMetadata(outputFilePath, metadata);
+    await this.metadataWriter.writeMetadata(convertedFilePath, metadata);
 
     // 8. Complete download
-    download.complete(outputFilePath);
+    download.complete(convertedFilePath);
 
     return download;
-  }
-
-  private async saveStreamToTempFile(
-    streamIterable: AsyncGenerator<Uint8Array<ArrayBufferLike>, void, unknown>
-  ): Promise<string> {
-    const tempFilePath = path.join(
-      tmpdir(),
-      `yt_${randomBytes(8).toString("hex")}.webm`
-    );
-
-    const writeStream = createWriteStream(tempFilePath, {
-      encoding: "binary",
-      flags: "w",
-    });
-
-    // Write the audio stream to the temporary file
-    for await (const chunk of streamIterable) {
-      writeStream.write(chunk);
-    }
-
-    // Finalize the write stream
-    writeStream.end();
-
-    return tempFilePath;
   }
 }

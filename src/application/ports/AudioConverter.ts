@@ -1,6 +1,7 @@
 export interface AudioConvertParams {
+  filename: string;
   inputFilePath: string;
-  outputFilePath: string;
+  outputFolder: string;
   bitrate?: string;
   channels?: number;
   sampleRate?: number;
@@ -8,5 +9,6 @@ export interface AudioConvertParams {
 }
 
 export interface AudioConverter {
-  convert(params: AudioConvertParams): Promise<void>;
+  convert(params: AudioConvertParams): Promise<string>;
+  deleteTemporaryFile(filePath: string): Promise<void>;
 }

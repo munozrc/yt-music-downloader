@@ -4,6 +4,8 @@ import type {
 } from "../../application/ports/AudioConverter.js";
 import ffmpegPath from "ffmpeg-static";
 import { spawn } from "node:child_process";
+import { unlink } from "node:fs/promises";
+import path from "node:path";
 
 export class FfmpegConverter implements AudioConverter {
   private ffmpegPath: string;
@@ -17,15 +19,26 @@ export class FfmpegConverter implements AudioConverter {
     this.ffmpegPath = ffmpegPath;
   }
 
-  convert(params: AudioConvertParams): Promise<void> {
+  /**
+   * Converts an audio file using FFmpeg.
+   * @param params Audio conversion parameters.
+   * @returns A promise that resolves with the output file path.
+   */
+  convert(params: AudioConvertParams): Promise<string> {
     const {
+      filename,
+      outputFolder,
       inputFilePath,
-      outputFilePath,
       bitrate = "128k",
       sampleRate = 44100,
       channels = 2,
       format = "mp3",
     } = params;
+
+    const outputFilePath = path.join(
+      outputFolder,
+      filename // with extension
+    );
 
     const args = [
       "-y",
@@ -56,7 +69,7 @@ export class FfmpegConverter implements AudioConverter {
       // Handle process exit
       ffmpeg.on("close", (code) => {
         if (code === 0) {
-          resolve(); // Conversion successful
+          resolve(outputFilePath); // Conversion successful
         } else {
           reject(new Error(`FFmpeg exited with code ${code}: ${errorOutput}`));
         }
@@ -67,5 +80,9 @@ export class FfmpegConverter implements AudioConverter {
         reject(error);
       });
     });
+  }
+
+  async deleteTemporaryFile(filePath: string): Promise<void> {
+    await unlink(filePath);
   }
 }
