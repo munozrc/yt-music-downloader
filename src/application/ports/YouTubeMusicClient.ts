@@ -5,8 +5,7 @@ import type { VideoId } from "../../domain/value-object/VideoId.js";
 export interface SearchResult {
   videoId: string;
   title: string;
-  artists: string[];
-  thumbnail: string;
+  artists: string;
 }
 
 export interface YouTubeMusicClient {

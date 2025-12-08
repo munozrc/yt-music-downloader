@@ -34,6 +34,10 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     this.yt = innertube;
   }
 
+  /**
+   * Factory method to create an instance of YouTubeMusicAdapter.
+   * @returns A promise that resolves to a YouTubeMusicAdapter instance.
+   */
   static async create(): Promise<YouTubeMusicAdapter> {
     // Setup eval shim for youtubei.js
     const { Platform } = await import("youtubei.js");
@@ -54,6 +58,11 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     return new YouTubeMusicAdapter(innertube);
   }
 
+  /**
+   * Retrieves metadata for a given track by its video ID.
+   * @param videoId The ID of the YouTube video.
+   * @returns A promise that resolves to the track metadata.
+   */
   async getTrackMetadata(videoId: VideoId): Promise<TrackMetadata> {
     const info = await this.yt.music.getInfo(videoId.value);
 
@@ -85,6 +94,42 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     );
   }
 
+  /**
+   * Searches for music tracks based on a query.
+   * @param query The search query string.
+   * @returns A promise that resolves to an array of search results.
+   */
+  async search(query: string): Promise<SearchResult[]> {
+    const results = await this.yt.music.search(query);
+
+    // Navigate to the MusicShelf node containing the search results
+    const musicShelf = results.contents?.[1]?.as(YTNodes.MusicShelf);
+    const rawItems =
+      musicShelf?.contents.as(YTNodes.MusicResponsiveListItem) ?? [];
+
+    // Map raw items to SearchResult format
+    const songs = rawItems.map((item) => {
+      const artists = item.artists?.length
+        ? item.artists.map((artist) => artist.name ?? "").join(", ")
+        : item.author?.name ?? "";
+
+      return {
+        title: item.title ?? "",
+        artists,
+        videoId: item.id ?? "",
+      };
+    });
+
+    return songs
+      .filter((song) => song.title !== "" && song.artists !== "")
+      .slice(0, 5);
+  }
+
+  /**
+   * Downloads the audio for a given video ID.
+   * @param videoId The ID of the YouTube video.
+   * @returns A promise that resolves to the downloaded audio file.
+   */
   async downloadAudio(videoId: VideoId): Promise<AudioFile> {
     const webPoTokenResult = await this.generateWebPoToken(videoId.value);
     const playerResponse = await this.makePlayerRequest(videoId.value);
@@ -177,10 +222,6 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
 
     // Return the AudioFile
     return AudioFile.create(tempFilePath, bitrate);
-  }
-
-  async search(): Promise<SearchResult[]> {
-    throw new Error("Method not implemented.");
   }
 
   getPlaylistTracks(): Promise<VideoId[]> {
