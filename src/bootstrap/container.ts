@@ -1,6 +1,7 @@
 import { join } from "node:path";
 
 import { DownloadTrackUseCase } from "../application/use-cases/DownloadTrackUseCase.js";
+import { SearchTrackByQueryUseCase } from "../application/use-cases/SearchTrackByQueryUseCase.js";
 import { SearchTrackUseCase } from "../application/use-cases/SearchTrackUseCase.js";
 import { FfmpegConverter } from "../infrastructure/converter/FfmpegConverter.js";
 import { SharpImageProcessor } from "../infrastructure/converter/SharpImageProcessor.js";
@@ -13,6 +14,7 @@ export type AppContainer = {
   logger: typeof logger;
   searchTrackUseCase: SearchTrackUseCase;
   downloadTrackUseCase: DownloadTrackUseCase;
+  searchTrackByQueryUseCase: SearchTrackByQueryUseCase;
 };
 
 /**
@@ -37,6 +39,10 @@ export async function buildContainer(): Promise<AppContainer> {
     metadataEnricher
   );
 
+  const searchTrackByQueryUseCase = new SearchTrackByQueryUseCase(
+    youtubeClient
+  );
+
   const downloadTrackUseCase = new DownloadTrackUseCase(
     youtubeClient,
     audioConverter,
@@ -47,6 +53,7 @@ export async function buildContainer(): Promise<AppContainer> {
   return {
     logger,
     downloadTrackUseCase,
+    searchTrackByQueryUseCase,
     searchTrackUseCase,
   };
 }
