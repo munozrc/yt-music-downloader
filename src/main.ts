@@ -1,35 +1,97 @@
 #!/usr/bin/env node
+import { Command } from "commander";
+import inquirer from "inquirer";
+
 import { buildContainer } from "./bootstrap/container.js";
 
-async function main() {
-  // Get the video URL from command line arguments
-  const videoUrl = process.argv.slice(2).join(" ").trim();
-  if (!videoUrl) {
-    console.error("Error: Missing required URL argument.");
-    process.exit(1);
-  }
+const program = new Command();
 
-  // Build the application container
-  const { logger, searchTrackUseCase, downloadTrackUseCase } =
-    await buildContainer();
+program
+  .name("yt-music-downloader")
+  .description("CLI to download music from YouTube Music")
+  .version("1.0.0");
 
-  try {
-    logger.info(`Searching for track: ${videoUrl}`);
-    const { metadata, videoId } = await searchTrackUseCase.execute(videoUrl);
+program
+  .command("search <query>")
+  .description("Search for tracks on YouTube Music by query")
+  .action(async (query) => {
+    const {
+      logger,
+      searchTrackByQueryUseCase,
+      searchTrackUseCase,
+      downloadTrackUseCase,
+    } = await buildContainer();
 
-    logger.info("Starting download...");
-    const download = await downloadTrackUseCase.execute(videoId, metadata);
+    try {
+      const results = await searchTrackByQueryUseCase.execute(query);
 
-    logger.success(`Downloaded: ${download.filename.withExtension()}`);
-    process.exit(0);
-  } catch (error) {
-    logger.error(
-      "Error processing track:",
-      error instanceof Error ? error.message : String(error)
-    );
+      if (results.length === 0) {
+        logger.info("No tracks found for the given query.");
+        process.exit(0);
+      }
 
-    process.exit(1);
-  }
-}
+      const choices = results.map((track, idx) => ({
+        name: `${track.title} - ${track.artists}`,
+        value: idx,
+      }));
 
-main();
+      const { selected } = await inquirer.prompt([
+        {
+          type: "rawlist",
+          name: "selected",
+          message: "Select a track to download:",
+          choices,
+        },
+      ]);
+
+      const track = results[selected];
+      if (!track) {
+        logger.error("No track selected.");
+        process.exit(1);
+      }
+
+      logger.info(`Get metadata for: ${track.title} - ${track.artists}`);
+      const { metadata, videoId } = await searchTrackUseCase.execute(
+        `https://music.youtube.com/watch?v=${track.videoId}`
+      );
+
+      logger.info("Starting download...");
+      const download = await downloadTrackUseCase.execute(videoId, metadata);
+
+      logger.success(`Downloaded: ${download.filename.withExtension()}`);
+      process.exit(0);
+    } catch (error) {
+      logger.error(
+        "Error searching track:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program
+  .command("download <url>")
+  .description("Download a track by URL")
+  .action(async (url) => {
+    const { logger, downloadTrackUseCase, searchTrackUseCase } =
+      await buildContainer();
+
+    try {
+      logger.info(`Searching for track: ${url}`);
+      const { metadata, videoId } = await searchTrackUseCase.execute(url);
+
+      logger.info("Starting download...");
+      const download = await downloadTrackUseCase.execute(videoId, metadata);
+
+      logger.success(`Downloaded: ${download.filename.withExtension()}`);
+      process.exit(0);
+    } catch (error) {
+      logger.error(
+        "Error downloading track:",
+        error instanceof Error ? error.message : String(error)
+      );
+      process.exit(1);
+    }
+  });
+
+program.parse(process.argv);
