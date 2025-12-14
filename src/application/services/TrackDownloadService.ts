@@ -1,6 +1,8 @@
 import { Download } from "../../domain/aggregate/Download.js";
+import { OutputPath } from "../../domain/value-object/OutputPath.js";
 import { YouTubeUrl } from "../../domain/value-object/YouTubeUrl.js";
 import type { AudioConverter } from "../ports/AudioConverter.js";
+import type { FileSystemManager } from "../ports/FileSystemManager.js";
 import type { MetadataEnricher } from "../ports/MetadataEnricher.js";
 import type { MetadataWriter } from "../ports/MetadataWriter.js";
 import type { YouTubeMusicClient } from "../ports/YouTubeMusicClient.js";
@@ -11,6 +13,7 @@ export class TrackDownloadService {
     private readonly audioConverter: AudioConverter,
     private readonly metadataWriter: MetadataWriter,
     private readonly metadataEnricher: MetadataEnricher,
+    private readonly fileSystemManager: FileSystemManager,
     private readonly outputFolder: string
   ) {}
 
@@ -33,6 +36,15 @@ export class TrackDownloadService {
       ? baseMetadata.withEnrichment(enrichment)
       : baseMetadata;
 
+    const outputPath = OutputPath.fromMetadata(
+      this.outputFolder,
+      fullMetadata.artists,
+      fullMetadata.album
+    );
+
+    const targetDirectory = outputPath.getFullPath();
+    await this.fileSystemManager.ensureDirectory(targetDirectory);
+
     // Create download aggregate and process the download
     const download = Download.create(fullMetadata);
     download.startDownloading();
@@ -43,7 +55,7 @@ export class TrackDownloadService {
       filename: download.filename.withExtension(),
       inputFilePath: audioFile.tempPath,
       bitrate: audioFile.bitrate.toString(),
-      outputFolder: this.outputFolder,
+      outputFolder: targetDirectory,
     });
 
     await this.audioConverter.deleteTemporaryFile(

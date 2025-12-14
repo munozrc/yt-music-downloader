@@ -1,5 +1,3 @@
-import { join } from "node:path";
-
 import type { Logger } from "../application/ports/Logger.js";
 import type { Presenter } from "../application/ports/Presenter.js";
 import { TrackDownloadService } from "../application/services/TrackDownloadService.js";
@@ -12,6 +10,7 @@ import { SearchCommand } from "../infrastructure/cli/commands/SearchCommand.js";
 import { InquirerPresenter } from "../infrastructure/cli/presenters/InquirerPresenter.js";
 import { FfmpegConverter } from "../infrastructure/converter/FfmpegConverter.js";
 import { SharpImageProcessor } from "../infrastructure/converter/SharpImageProcessor.js";
+import { NodeFileSystemManager } from "../infrastructure/filesystem/NodeFileSystemManager.js";
 import { logger } from "../infrastructure/logging/logger.js";
 import { iTunesEnricher } from "../infrastructure/metadata/iTunesEnricher.js";
 import { NodeId3Writer } from "../infrastructure/metadata/NodeId3Writer.js";
@@ -31,6 +30,7 @@ export async function buildContainer(): Promise<AppContainer> {
   const metadataEnricher = new iTunesEnricher();
   const youtubeClient = await YouTubeMusicAdapter.create();
   const metadataWriter = new NodeId3Writer(imageProcessor);
+  const fileSystemManager = new NodeFileSystemManager();
   const audioConverter = new FfmpegConverter();
 
   // Presentation adapters
@@ -38,9 +38,7 @@ export async function buildContainer(): Promise<AppContainer> {
   const presenter: Presenter = new InquirerPresenter();
 
   // Output configuration
-  const defaultOutputFolder = process.env.USERPROFILE
-    ? join(process.env.USERPROFILE, "Music")
-    : "";
+  const defaultOutputFolder = fileSystemManager.getDefaultMusicFolder();
 
   // Domain services
   const trackDownloadService = new TrackDownloadService(
@@ -48,6 +46,7 @@ export async function buildContainer(): Promise<AppContainer> {
     audioConverter,
     metadataWriter,
     metadataEnricher,
+    fileSystemManager,
     defaultOutputFolder
   );
 

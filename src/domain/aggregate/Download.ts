@@ -94,8 +94,17 @@ export class Download {
     return this._error;
   }
 
+  /**
+   * Returns the filename based on metadata
+   * - If trackNumber exists: "01 - Song Title.mp3"
+   * - If no trackNumber: "Artist - Song Title.mp3"
+   */
   get filename(): Filename {
-    return Filename.fromParts(this._metadata.artists, this._metadata.title);
+    return Filename.fromParts(
+      this._metadata.artists,
+      this._metadata.title,
+      this._metadata.trackNumber
+    );
   }
 
   isCompleted(): boolean {

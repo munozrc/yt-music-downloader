@@ -1,8 +1,12 @@
+import { capitalizeWords } from "../utils/stringUtils.js";
+
 export class Album {
   private constructor(private readonly name: string) {}
 
   static fromName(name: string | undefined): Album {
-    return new Album(name?.trim() || "");
+    const trimmed = name?.trim() || "";
+    const capitalized = trimmed ? capitalizeWords(trimmed) : "";
+    return new Album(capitalized);
   }
 
   static empty(): Album {
