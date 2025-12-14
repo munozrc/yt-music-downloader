@@ -36,12 +36,15 @@ export class TrackDownloadService {
       ? baseMetadata.withEnrichment(enrichment)
       : baseMetadata;
 
+    // Prepare output directory
     const outputPath = OutputPath.fromMetadata(
       this.outputFolder,
       fullMetadata.artists,
-      fullMetadata.album
+      fullMetadata.album,
+      fullMetadata.year
     );
 
+    // Ensure output directory exists
     const targetDirectory = outputPath.getFullPath();
     await this.fileSystemManager.ensureDirectory(targetDirectory);
 

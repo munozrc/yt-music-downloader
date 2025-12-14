@@ -10,20 +10,32 @@ export class OutputPath {
 
   /**
    * Creates an output path based on artist and album information
-   * Structure with album: baseFolder/Artist/Album
+   * Structure with album and year: baseFolder/Artist/Album (Year)
+   * Structure with album no year: baseFolder/Artist/Album
    * Structure without album: baseFolder/Artist
    */
   static fromMetadata(
     baseFolder: string,
     artists: Artists,
-    album: Album
+    album: Album,
+    year?: string
   ): OutputPath {
     const artistFolder = this.sanitizeFolder(artists.primary);
 
     // Only create album folder if album is valid and not empty
-    const albumFolder = album.isEmpty()
-      ? null
-      : this.sanitizeFolder(album.value);
+    let albumFolder: string | null = null;
+
+    // Check if album is not empty
+    if (!album.isEmpty()) {
+      const albumName = album.value;
+
+      // Include year in folder name if valid
+      if (year && year.trim() !== "" && year !== "0") {
+        albumFolder = this.sanitizeFolder(`${albumName} (${year.trim()})`);
+      } else {
+        albumFolder = this.sanitizeFolder(albumName);
+      }
+    }
 
     return new OutputPath(baseFolder, artistFolder, albumFolder);
   }
