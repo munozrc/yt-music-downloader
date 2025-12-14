@@ -12,8 +12,4 @@ export interface Presenter {
   selectTrack(
     options: TrackSelectionOption[]
   ): Promise<TrackSelectionOption | null>;
-
-  showSuccess(message: string): void;
-
-  showError(message: string, error?: Error): void;
 }

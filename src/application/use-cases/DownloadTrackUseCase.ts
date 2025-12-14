@@ -1,56 +1,22 @@
 import { Download } from "../../domain/aggregate/Download.js";
-import { YouTubeUrl } from "../../domain/value-object/YouTubeUrl.js";
-import type { AudioConverter } from "../ports/AudioConverter.js";
-import type { MetadataEnricher } from "../ports/MetadataEnricher.js";
-import type { MetadataWriter } from "../ports/MetadataWriter.js";
-import type { YouTubeMusicClient } from "../ports/YouTubeMusicClient.js";
+import type { Logger } from "../ports/Logger.js";
+import type { TrackDownloadService } from "../services/TrackDownloadService.js";
 
 export class DownloadTrackUseCase {
   constructor(
-    private readonly youtubeClient: YouTubeMusicClient,
-    private readonly audioConverter: AudioConverter,
-    private readonly metadataWriter: MetadataWriter,
-    private readonly metadataEnricher: MetadataEnricher,
-    private readonly outputFolder: string
+    private readonly trackDownloader: TrackDownloadService,
+    private readonly logger: Logger
   ) {}
 
   async execute(urlString: string): Promise<Download> {
-    // Extract video ID from the URL
-    const url = YouTubeUrl.fromString(urlString);
-    const videoId = url.extractVideoId();
+    this.logger.info("Initiating track download...");
 
-    // Fetch base metadata and enrich it
-    const baseMetadata = await this.youtubeClient.getTrackMetadata(videoId);
-    const enrichment = await this.metadataEnricher.enrich(baseMetadata);
+    // Use the TrackDownloadService to download the track
+    const download = await this.trackDownloader.downloadFromUrl(urlString);
 
-    // Merge base metadata with enrichment if available
-    const fullMetadata = enrichment
-      ? baseMetadata.withEnrichment(enrichment)
-      : baseMetadata;
-
-    // Create download aggregate and process the download
-    const download = Download.create(fullMetadata);
-    download.startDownloading();
-    const audioFile = await this.youtubeClient.downloadAudio(videoId);
-    download.setAudioFile(audioFile);
-
-    const convertedFilePath = await this.audioConverter.convert({
-      filename: download.filename.withExtension(),
-      inputFilePath: audioFile.tempPath,
-      bitrate: audioFile.bitrate.toString(),
-      outputFolder: this.outputFolder,
-    });
-
-    await this.audioConverter.deleteTemporaryFile(
-      audioFile.tempPath // cleanup
+    this.logger.success(
+      `Track downloaded: ${download.filename.withExtension()}`
     );
-
-    // Write metadata to the converted file
-    download.startWritingMetadata();
-    await this.metadataWriter.writeMetadata(convertedFilePath, fullMetadata);
-
-    // Mark download as complete
-    download.complete(convertedFilePath);
 
     return download;
   }

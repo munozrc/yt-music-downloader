@@ -4,7 +4,7 @@ export class YouTubeUrl {
   private constructor(public readonly value: string) {}
 
   static fromString(url: string): YouTubeUrl {
-    if (!url.includes("music.youtube.com/watch")) {
+    if (!url.includes("music.youtube.com")) {
       throw new Error(
         "Invalid YouTube Music URL. Must be a music.youtube.com URL"
       );

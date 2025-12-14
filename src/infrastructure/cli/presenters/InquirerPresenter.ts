@@ -4,7 +4,6 @@ import type {
   Presenter,
   TrackSelectionOption,
 } from "../../../application/ports/Presenter.js";
-import { logger } from "../../logging/logger.js";
 
 export class InquirerPresenter implements Presenter {
   /**
@@ -33,14 +32,5 @@ export class InquirerPresenter implements Presenter {
     ]);
 
     return options[selected] ?? null;
-  }
-
-  showSuccess(message: string): void {
-    logger.success(message);
-  }
-
-  showError(message: string, error?: Error): void {
-    const errorMessage = error ? `${message}: ${error.message}` : message;
-    logger.error(errorMessage);
   }
 }

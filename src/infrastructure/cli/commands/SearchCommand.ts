@@ -32,9 +32,8 @@ export class SearchCommand {
     try {
       // Execute use case - pure business logic
       const results = await this.searchTrackUseCase.execute(query);
-
       if (results.length === 0) {
-        this.presenter.showError("No tracks found.");
+        this.logger.error("No tracks found.");
         process.exit(1);
       }
 
@@ -42,22 +41,17 @@ export class SearchCommand {
       const selectedTrack = await this.presenter.selectTrack(results);
 
       if (!selectedTrack) {
-        this.presenter.showError("No track selected.");
+        this.logger.error("No track selected.");
         process.exit(1);
       }
 
       // Download the selected track
-      this.logger.info("Starting download...");
       const url = `https://music.youtube.com/watch?v=${selectedTrack.videoId}`;
-      const download = await this.downloadTrackUseCase.execute(url);
+      await this.downloadTrackUseCase.execute(url);
 
-      // Show success
-      this.presenter.showSuccess(
-        `Downloaded: ${download.filename.withExtension()}`
-      );
       process.exit(0);
     } catch (error) {
-      this.presenter.showError(
+      this.logger.error(
         "Error searching track",
         error instanceof Error ? error : new Error(String(error))
       );

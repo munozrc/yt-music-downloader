@@ -2,6 +2,8 @@ import { join } from "node:path";
 
 import type { Logger } from "../application/ports/Logger.js";
 import type { Presenter } from "../application/ports/Presenter.js";
+import { TrackDownloadService } from "../application/services/TrackDownloadService.js";
+import { DownloadPlaylistUseCase } from "../application/use-cases/DownloadPlaylistUseCase.js";
 import { DownloadTrackUseCase } from "../application/use-cases/DownloadTrackUseCase.js";
 import { SearchTrackUseCase } from "../application/use-cases/SearchTrackUseCase.js";
 import { CliApplication } from "../infrastructure/cli/CliApplication.js";
@@ -40,6 +42,15 @@ export async function buildContainer(): Promise<AppContainer> {
     ? join(process.env.USERPROFILE, "Music")
     : "";
 
+  // Domain services
+  const trackDownloadService = new TrackDownloadService(
+    youtubeClient,
+    audioConverter,
+    metadataWriter,
+    metadataEnricher,
+    defaultOutputFolder
+  );
+
   // Use cases
   const searchTrackUseCase = new SearchTrackUseCase(
     youtubeClient,
@@ -47,11 +58,14 @@ export async function buildContainer(): Promise<AppContainer> {
   );
 
   const downloadTrackUseCase = new DownloadTrackUseCase(
+    trackDownloadService,
+    loggerAdapter
+  );
+
+  const downloadPlaylistUseCase = new DownloadPlaylistUseCase(
     youtubeClient,
-    audioConverter,
-    metadataWriter,
-    metadataEnricher,
-    defaultOutputFolder
+    trackDownloadService,
+    loggerAdapter
   );
 
   // CLI Commands
@@ -64,7 +78,7 @@ export async function buildContainer(): Promise<AppContainer> {
 
   const downloadCommand = new DownloadCommand(
     downloadTrackUseCase,
-    presenter,
+    downloadPlaylistUseCase,
     loggerAdapter
   );
 

@@ -25,7 +25,7 @@ import { Artists } from "../../domain/value-object/Artists.js";
 import { AudioFile } from "../../domain/value-object/AudioFile.js";
 import { CoverArt } from "../../domain/value-object/CoverArt.js";
 import { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
-import type { VideoId } from "../../domain/value-object/VideoId.js";
+import { VideoId } from "../../domain/value-object/VideoId.js";
 
 export class YouTubeMusicAdapter implements YouTubeMusicClient {
   private yt: Innertube;
@@ -125,6 +125,17 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
       .slice(0, 5);
   }
 
+  async getPlaylistTracks(playlistId: string): Promise<VideoId[]> {
+    const results = await this.yt.music.getPlaylist(playlistId);
+    const contents =
+      results.contents?.as(YTNodes.MusicResponsiveListItem) ?? [];
+
+    return contents
+      .map((item) => item?.id || "")
+      .filter((id) => id !== "")
+      .map((id) => VideoId.fromString(id));
+  }
+
   /**
    * Downloads the audio for a given video ID.
    * @param videoId The ID of the YouTube video.
@@ -222,10 +233,6 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
 
     // Return the AudioFile
     return AudioFile.create(tempFilePath, bitrate);
-  }
-
-  getPlaylistTracks(): Promise<VideoId[]> {
-    throw new Error("Method not implemented.");
   }
 
   /**
