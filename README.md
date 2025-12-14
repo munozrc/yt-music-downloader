@@ -24,7 +24,7 @@ Download your favorite tracks from YouTube Music with automatic metadata enrichm
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/yt-music-downloader.git
+git clone https://github.com/munozrc/yt-music-downloader.git
 cd yt-music-downloader
 
 # Install dependencies
