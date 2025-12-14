@@ -1,7 +1,13 @@
 import { join } from "node:path";
 
+import type { Logger } from "../application/ports/Logger.js";
+import type { Presenter } from "../application/ports/Presenter.js";
 import { DownloadTrackUseCase } from "../application/use-cases/DownloadTrackUseCase.js";
 import { SearchTrackUseCase } from "../application/use-cases/SearchTrackUseCase.js";
+import { CliApplication } from "../infrastructure/cli/CliApplication.js";
+import { DownloadCommand } from "../infrastructure/cli/commands/DownloadCommand.js";
+import { SearchCommand } from "../infrastructure/cli/commands/SearchCommand.js";
+import { InquirerPresenter } from "../infrastructure/cli/presenters/InquirerPresenter.js";
 import { FfmpegConverter } from "../infrastructure/converter/FfmpegConverter.js";
 import { SharpImageProcessor } from "../infrastructure/converter/SharpImageProcessor.js";
 import { logger } from "../infrastructure/logging/logger.js";
@@ -10,9 +16,7 @@ import { NodeId3Writer } from "../infrastructure/metadata/NodeId3Writer.js";
 import { YouTubeMusicAdapter } from "../infrastructure/youtube/YouTubeMusicAdapter.js";
 
 export type AppContainer = {
-  logger: typeof logger;
-  downloadTrackUseCase: DownloadTrackUseCase;
-  searchTrackUseCase: SearchTrackUseCase;
+  cliApplication: CliApplication;
 };
 
 /**
@@ -20,20 +24,27 @@ export type AppContainer = {
  * @returns A promise that resolves to the application container.
  */
 export async function buildContainer(): Promise<AppContainer> {
+  // Infrastructure adapters
   const imageProcessor = new SharpImageProcessor();
   const metadataEnricher = new iTunesEnricher();
-
   const youtubeClient = await YouTubeMusicAdapter.create();
   const metadataWriter = new NodeId3Writer(imageProcessor);
   const audioConverter = new FfmpegConverter();
 
-  // Default output folder (e.g., "Music" directory in the user's home)
+  // Presentation adapters
+  const loggerAdapter: Logger = logger; // Adapter pattern
+  const presenter: Presenter = new InquirerPresenter();
+
+  // Output configuration
   const defaultOutputFolder = process.env.USERPROFILE
     ? join(process.env.USERPROFILE, "Music")
     : "";
 
   // Use cases
-  const searchTrackUseCase = new SearchTrackUseCase(youtubeClient);
+  const searchTrackUseCase = new SearchTrackUseCase(
+    youtubeClient,
+    loggerAdapter
+  );
 
   const downloadTrackUseCase = new DownloadTrackUseCase(
     youtubeClient,
@@ -43,9 +54,24 @@ export async function buildContainer(): Promise<AppContainer> {
     defaultOutputFolder
   );
 
-  return {
-    logger,
-    downloadTrackUseCase,
+  // CLI Commands
+  const searchCommand = new SearchCommand(
     searchTrackUseCase,
+    downloadTrackUseCase,
+    presenter,
+    loggerAdapter
+  );
+
+  const downloadCommand = new DownloadCommand(
+    downloadTrackUseCase,
+    presenter,
+    loggerAdapter
+  );
+
+  // CLI Application
+  const cliApplication = new CliApplication(searchCommand, downloadCommand);
+
+  return {
+    cliApplication,
   };
 }
