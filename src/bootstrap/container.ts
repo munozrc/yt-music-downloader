@@ -1,7 +1,6 @@
 import { join } from "node:path";
 
 import { DownloadTrackUseCase } from "../application/use-cases/DownloadTrackUseCase.js";
-import { SearchTrackByQueryUseCase } from "../application/use-cases/SearchTrackByQueryUseCase.js";
 import { SearchTrackUseCase } from "../application/use-cases/SearchTrackUseCase.js";
 import { FfmpegConverter } from "../infrastructure/converter/FfmpegConverter.js";
 import { SharpImageProcessor } from "../infrastructure/converter/SharpImageProcessor.js";
@@ -12,9 +11,8 @@ import { YouTubeMusicAdapter } from "../infrastructure/youtube/YouTubeMusicAdapt
 
 export type AppContainer = {
   logger: typeof logger;
-  searchTrackUseCase: SearchTrackUseCase;
   downloadTrackUseCase: DownloadTrackUseCase;
-  searchTrackByQueryUseCase: SearchTrackByQueryUseCase;
+  searchTrackUseCase: SearchTrackUseCase;
 };
 
 /**
@@ -29,31 +27,25 @@ export async function buildContainer(): Promise<AppContainer> {
   const metadataWriter = new NodeId3Writer(imageProcessor);
   const audioConverter = new FfmpegConverter();
 
+  // Default output folder (e.g., "Music" directory in the user's home)
   const defaultOutputFolder = process.env.USERPROFILE
     ? join(process.env.USERPROFILE, "Music")
     : "";
 
   // Use cases
-  const searchTrackUseCase = new SearchTrackUseCase(
-    youtubeClient,
-    metadataEnricher
-  );
-
-  const searchTrackByQueryUseCase = new SearchTrackByQueryUseCase(
-    youtubeClient
-  );
+  const searchTrackUseCase = new SearchTrackUseCase(youtubeClient);
 
   const downloadTrackUseCase = new DownloadTrackUseCase(
     youtubeClient,
     audioConverter,
     metadataWriter,
+    metadataEnricher,
     defaultOutputFolder
   );
 
   return {
     logger,
     downloadTrackUseCase,
-    searchTrackByQueryUseCase,
     searchTrackUseCase,
   };
 }

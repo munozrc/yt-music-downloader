@@ -15,26 +15,13 @@ program
   .command("search <query>")
   .description("Search for tracks on YouTube Music by query")
   .action(async (query) => {
-    const {
-      logger,
-      searchTrackByQueryUseCase,
-      searchTrackUseCase,
-      downloadTrackUseCase,
-    } = await buildContainer();
+    const { logger, searchTrackUseCase, downloadTrackUseCase } =
+      await buildContainer();
 
     try {
-      const results = await searchTrackByQueryUseCase.execute(query);
+      const { choices, results } = await searchTrackUseCase.execute(query);
 
-      if (results.length === 0) {
-        logger.info("No tracks found for the given query.");
-        process.exit(0);
-      }
-
-      const choices = results.map((track, idx) => ({
-        name: `${track.title} - ${track.artists}`,
-        value: idx,
-      }));
-
+      // Prompt user to select a track from the search results
       const { selected } = await inquirer.prompt([
         {
           type: "rawlist",
@@ -50,14 +37,12 @@ program
         process.exit(1);
       }
 
-      logger.info(`Get metadata for: ${track.title} - ${track.artists}`);
-      const { metadata, videoId } = await searchTrackUseCase.execute(
+      logger.info("Starting download...");
+      const download = await downloadTrackUseCase.execute(
         `https://music.youtube.com/watch?v=${track.videoId}`
       );
 
-      logger.info("Starting download...");
-      const download = await downloadTrackUseCase.execute(videoId, metadata);
-
+      // Download completed
       logger.success(`Downloaded: ${download.filename.withExtension()}`);
       process.exit(0);
     } catch (error) {
@@ -73,16 +58,13 @@ program
   .command("download <url>")
   .description("Download a track by URL")
   .action(async (url) => {
-    const { logger, downloadTrackUseCase, searchTrackUseCase } =
-      await buildContainer();
+    const { logger, downloadTrackUseCase } = await buildContainer();
 
     try {
-      logger.info(`Searching for track: ${url}`);
-      const { metadata, videoId } = await searchTrackUseCase.execute(url);
-
       logger.info("Starting download...");
-      const download = await downloadTrackUseCase.execute(videoId, metadata);
+      const download = await downloadTrackUseCase.execute(url);
 
+      // Download completed
       logger.success(`Downloaded: ${download.filename.withExtension()}`);
       process.exit(0);
     } catch (error) {

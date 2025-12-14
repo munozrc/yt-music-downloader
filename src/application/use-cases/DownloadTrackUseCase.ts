@@ -1,7 +1,7 @@
 import { Download } from "../../domain/aggregate/Download.js";
-import type { TrackMetadata } from "../../domain/value-object/TrackMetadata.js";
-import type { VideoId } from "../../domain/value-object/VideoId.js";
+import { YouTubeUrl } from "../../domain/value-object/YouTubeUrl.js";
 import type { AudioConverter } from "../ports/AudioConverter.js";
+import type { MetadataEnricher } from "../ports/MetadataEnricher.js";
 import type { MetadataWriter } from "../ports/MetadataWriter.js";
 import type { YouTubeMusicClient } from "../ports/YouTubeMusicClient.js";
 
@@ -10,25 +10,30 @@ export class DownloadTrackUseCase {
     private readonly youtubeClient: YouTubeMusicClient,
     private readonly audioConverter: AudioConverter,
     private readonly metadataWriter: MetadataWriter,
+    private readonly metadataEnricher: MetadataEnricher,
     private readonly outputFolder: string
   ) {}
 
-  /**
-   * Downloads a track, converts it, and writes metadata.
-   * @param videoId The video ID of the track to download.
-   * @param metadata The metadata of the track.
-   * @returns The completed download aggregate.
-   */
-  async execute(videoId: VideoId, metadata: TrackMetadata): Promise<Download> {
-    // 4. Create download aggregate
-    const download = Download.create(metadata);
-    download.startDownloading();
+  async execute(urlString: string): Promise<Download> {
+    // Extract video ID from the URL
+    const url = YouTubeUrl.fromString(urlString);
+    const videoId = url.extractVideoId();
 
-    // 5. Download audio stream
+    // Fetch base metadata and enrich it
+    const baseMetadata = await this.youtubeClient.getTrackMetadata(videoId);
+    const enrichment = await this.metadataEnricher.enrich(baseMetadata);
+
+    // Merge base metadata with enrichment if available
+    const fullMetadata = enrichment
+      ? baseMetadata.withEnrichment(enrichment)
+      : baseMetadata;
+
+    // Create download aggregate and process the download
+    const download = Download.create(fullMetadata);
+    download.startDownloading();
     const audioFile = await this.youtubeClient.downloadAudio(videoId);
     download.setAudioFile(audioFile);
 
-    // 6. Convert audio to MP3
     const convertedFilePath = await this.audioConverter.convert({
       filename: download.filename.withExtension(),
       inputFilePath: audioFile.tempPath,
@@ -36,14 +41,15 @@ export class DownloadTrackUseCase {
       outputFolder: this.outputFolder,
     });
 
-    // Clean up temp file
-    await this.audioConverter.deleteTemporaryFile(audioFile.tempPath);
+    await this.audioConverter.deleteTemporaryFile(
+      audioFile.tempPath // cleanup
+    );
 
-    // 7. Write metadata with artwork
+    // Write metadata to the converted file
     download.startWritingMetadata();
-    await this.metadataWriter.writeMetadata(convertedFilePath, metadata);
+    await this.metadataWriter.writeMetadata(convertedFilePath, fullMetadata);
 
-    // 8. Complete download
+    // Mark download as complete
     download.complete(convertedFilePath);
 
     return download;
