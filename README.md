@@ -11,7 +11,6 @@ Download your favorite tracks from YouTube Music with automatic metadata enrichm
 - 🖼️ **Album artwork** - Embedded cover art in high resolution
 - 🔍 **Search functionality** - Find tracks directly from the CLI
 - 📦 **Playlist support** - Download entire playlists with a single command
-- ⚡ **Fast & efficient** - Powered by FFmpeg and modern Node.js libraries
 
 ## 📋 Requirements
 
