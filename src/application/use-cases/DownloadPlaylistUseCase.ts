@@ -8,7 +8,7 @@ export class DownloadPlaylistUseCase {
   constructor(
     private readonly playlistClient: YouTubeMusicClient,
     private readonly trackDownloader: TrackDownloadService,
-    private readonly logger: Logger
+    private readonly logger: Logger,
   ) {}
 
   async execute(playlistUrl: string): Promise<Download[]> {
@@ -40,7 +40,7 @@ export class DownloadPlaylistUseCase {
       downloads.push(download);
 
       this.logger.success(
-        `Track downloaded: ${download.filename.withExtension()}`
+        `Track downloaded: ${download.filename.withExtension()}`,
       );
     }
 

@@ -9,6 +9,7 @@ import { SabrStream } from "googlevideo/sabr-stream";
 import { buildSabrFormat, EnabledTrackTypes } from "googlevideo/utils";
 import { JSDOM } from "jsdom";
 import Innertube, {
+  ClientType,
   Constants,
   type IPlayerResponse,
   UniversalCache,
@@ -52,6 +53,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     };
 
     const innertube = await Innertube.create({
+      client_type: ClientType.MWEB,
       cache: new UniversalCache(true),
     });
 

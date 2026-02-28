@@ -14,7 +14,7 @@ export class TrackDownloadService {
     private readonly metadataWriter: MetadataWriter,
     private readonly metadataEnricher: MetadataEnricher,
     private readonly fileSystemManager: FileSystemManager,
-    private readonly outputFolder: string
+    private readonly outputFolder: string,
   ) {}
 
   /**
@@ -41,7 +41,7 @@ export class TrackDownloadService {
       this.outputFolder,
       fullMetadata.artists,
       fullMetadata.album,
-      fullMetadata.year
+      fullMetadata.year,
     );
 
     // Ensure output directory exists
@@ -62,7 +62,7 @@ export class TrackDownloadService {
     });
 
     await this.audioConverter.deleteTemporaryFile(
-      audioFile.tempPath // cleanup
+      audioFile.tempPath, // cleanup
     );
 
     // Write metadata to the converted file
