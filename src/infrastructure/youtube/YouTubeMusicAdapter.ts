@@ -3,13 +3,18 @@ import { createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { BG, type BgConfig } from "bgutils-js";
+import {
+  BG,
+  buildURL,
+  GOOG_API_KEY,
+  USER_AGENT,
+  type WebPoSignalOutput,
+} from "bgutils-js";
 import type { ReloadPlaybackContext } from "googlevideo/protos";
 import { SabrStream } from "googlevideo/sabr-stream";
 import { buildSabrFormat, EnabledTrackTypes } from "googlevideo/utils";
 import { JSDOM } from "jsdom";
 import Innertube, {
-  ClientType,
   Constants,
   type IPlayerResponse,
   UniversalCache,
@@ -53,8 +58,9 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     };
 
     const innertube = await Innertube.create({
-      client_type: ClientType.MWEB,
+      user_agent: USER_AGENT,
       cache: new UniversalCache(true),
+      enable_session_cache: false,
     });
 
     return new YouTubeMusicAdapter(innertube);
@@ -145,7 +151,11 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
    */
   async downloadAudio(videoId: VideoId): Promise<AudioFile> {
     const webPoTokenResult = await this.generateWebPoToken(videoId.value);
-    const playerResponse = await this.makePlayerRequest(videoId.value);
+
+    const playerResponse = await this.makePlayerRequest(
+      videoId.value,
+      webPoTokenResult.poToken,
+    );
 
     // Now get the streaming information.
     const serverAbrStreamingUrl = await this.yt.session.player?.decipher(
@@ -187,6 +197,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
         // Fetch a new player response with the provided playback context.
         const playerResponse = await this.makePlayerRequest(
           videoId.value,
+          webPoTokenResult.poToken,
           reloadPlaybackContext,
         );
 
@@ -245,6 +256,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
    */
   private async makePlayerRequest(
     videoId: string,
+    contentPoToken?: string,
     reloadPlaybackContext?: ReloadPlaybackContext,
   ): Promise<IPlayerResponse> {
     const watchEndpoint = new YTNodes.NavigationEndpoint({
@@ -254,7 +266,6 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const extraArgs: Record<string, any> = {
       playbackContext: {
-        adPlaybackContext: { pyv: true },
         contentPlaybackContext: {
           vis: 0,
           splay: false,
@@ -262,8 +273,9 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
           signatureTimestamp: this.yt.session.player?.signature_timestamp,
         },
       },
-      contentCheckOk: true,
-      racyCheckOk: true,
+      serviceIntegrityDimensions: {
+        poToken: contentPoToken,
+      },
     };
 
     if (reloadPlaybackContext) {
@@ -286,49 +298,86 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
       throw new Error("Could not get visitor data");
     }
 
-    const dom = new JSDOM();
+    const dom = new JSDOM(
+      '<!DOCTYPE html><html lang="en"><head><title></title></head><body></body></html>',
+      {
+        url: "https://www.youtube.com/",
+        referrer: "https://www.youtube.com/",
+        userAgent: USER_AGENT,
+      },
+    );
 
     Object.assign(globalThis, {
       window: dom.window,
       document: dom.window.document,
+      location: dom.window.location,
+      origin: dom.window.origin,
     });
 
-    const bgConfig: BgConfig = {
-      fetch: (input: string | URL | globalThis.Request, init?: RequestInit) =>
-        fetch(input, { ...init, signal: AbortSignal.timeout(30 * 1000) }),
-      globalObj: globalThis,
-      identifier: contentBinding,
-      requestKey: "O43z0dpjhgX20SCx4KAo",
-    };
+    if (!Reflect.has(globalThis, "navigator")) {
+      Object.defineProperty(globalThis, "navigator", {
+        value: dom.window.navigator,
+      });
+    }
 
-    const bgChallenge = await BG.Challenge.create(bgConfig);
-    if (!bgChallenge) throw new Error("Could not get challenge");
+    const challengeResponse = await this.yt.getAttestationChallenge(
+      "ENGAGEMENT_TYPE_UNBOUND",
+    );
 
-    const interpreterJavascript =
-      bgChallenge.interpreterJavascript
-        .privateDoNotAccessOrElseSafeScriptWrappedValue;
+    if (!challengeResponse.bg_challenge) {
+      throw new Error("Could not get challenge");
+    }
 
-    if (!interpreterJavascript) {
+    const interpreterUrl =
+      challengeResponse.bg_challenge.interpreter_url
+        .private_do_not_access_or_else_trusted_resource_url_wrapped_value;
+    const bgScriptResponse = await fetch(`https:${interpreterUrl}`);
+    const interpreterJavascript = await bgScriptResponse.text();
+
+    if (interpreterJavascript) {
+      new Function(interpreterJavascript)();
+    } else {
       throw new Error("Could not load VM");
     }
 
-    // Execute the interpreter JavaScript in the global context.
-    new Function(interpreterJavascript)();
-
-    const poTokenResult = await BG.PoToken.generate({
-      program: bgChallenge.program,
-      globalName: bgChallenge.globalName,
-      bgConfig,
+    const botGuard = await BG.BotGuardClient.create({
+      program: challengeResponse.bg_challenge.program,
+      globalName: challengeResponse.bg_challenge.global_name,
+      globalObj: globalThis,
     });
 
-    // Generate the placeholder Po Token.
-    const placeholderPoToken =
-      BG.PoToken.generateColdStartToken(contentBinding);
+    const webPoSignalOutput: WebPoSignalOutput = [];
+    const botGuardResponse = await botGuard.snapshot({ webPoSignalOutput });
+    const requestKey = "O43z0dpjhgX20SCx4KAo";
+
+    const integrityTokenResponse = await fetch(buildURL("GenerateIT", true), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json+protobuf",
+        "x-goog-api-key": GOOG_API_KEY,
+        "x-user-agent": "grpc-web-javascript/0.1",
+        "user-agent": USER_AGENT,
+      },
+      body: JSON.stringify([requestKey, botGuardResponse]),
+    });
+
+    const response = (await integrityTokenResponse.json()) as unknown[];
+
+    if (typeof response[0] !== "string") {
+      throw new Error("Could not get integrity token");
+    }
+
+    const integrityTokenBasedMinter = await BG.WebPoMinter.create(
+      { integrityToken: response[0] },
+      webPoSignalOutput,
+    );
+
+    const contentPoToken =
+      await integrityTokenBasedMinter.mintAsWebsafeString(contentBinding);
 
     return {
-      poToken: poTokenResult.poToken,
+      poToken: contentPoToken,
       visitorData: contentBinding,
-      placeholderPoToken,
     };
   }
 }
