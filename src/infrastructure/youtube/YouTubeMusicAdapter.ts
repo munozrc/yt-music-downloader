@@ -72,7 +72,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
       .content?.as(YTNodes.PlaylistPanel);
 
     const firstVideo = playlistPanel?.contents?.[0]?.as(
-      YTNodes.PlaylistPanelVideo
+      YTNodes.PlaylistPanelVideo,
     );
 
     const artists = firstVideo?.artists?.length
@@ -90,7 +90,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
       artists,
       album,
       firstVideo?.album?.year || "",
-      coverArt
+      coverArt,
     );
   }
 
@@ -111,7 +111,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
     const songs = rawItems.map((item) => {
       const artists = item.artists?.length
         ? item.artists.map((artist) => artist.name ?? "").join(", ")
-        : item.author?.name ?? "";
+        : (item.author?.name ?? "");
 
       return {
         title: item.title ?? "",
@@ -147,7 +147,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
 
     // Now get the streaming information.
     const serverAbrStreamingUrl = await this.yt.session.player?.decipher(
-      playerResponse.streaming_data?.server_abr_streaming_url
+      playerResponse.streaming_data?.server_abr_streaming_url,
     );
     const videoPlaybackUstreamerConfig =
       playerResponse.player_config?.media_common_config
@@ -172,7 +172,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
           Constants.CLIENT_NAME_IDS[
             this.yt.session.context.client
               .clientName as keyof typeof Constants.CLIENT_NAME_IDS
-          ]
+          ],
         ),
         clientVersion: this.yt.session.context.client.clientVersion,
       },
@@ -185,11 +185,11 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
         // Fetch a new player response with the provided playback context.
         const playerResponse = await this.makePlayerRequest(
           videoId.value,
-          reloadPlaybackContext
+          reloadPlaybackContext,
         );
 
         const serverAbrStreamingUrl = await this.yt.session.player?.decipher(
-          playerResponse.streaming_data?.server_abr_streaming_url
+          playerResponse.streaming_data?.server_abr_streaming_url,
         );
         const videoPlaybackUstreamerConfig =
           playerResponse.player_config?.media_common_config
@@ -199,7 +199,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
           serverAbrStream.setStreamingURL(serverAbrStreamingUrl);
           serverAbrStream.setUstreamerConfig(videoPlaybackUstreamerConfig);
         }
-      }
+      },
     );
 
     // Start the stream and get the audio stream.
@@ -243,7 +243,7 @@ export class YouTubeMusicAdapter implements YouTubeMusicClient {
    */
   private async makePlayerRequest(
     videoId: string,
-    reloadPlaybackContext?: ReloadPlaybackContext
+    reloadPlaybackContext?: ReloadPlaybackContext,
   ): Promise<IPlayerResponse> {
     const watchEndpoint = new YTNodes.NavigationEndpoint({
       watchEndpoint: { videoId },
